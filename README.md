@@ -76,6 +76,8 @@ Press Enter to continue
 
 **STEP 12** In the profile name, input `shipper`.
 
+![Screenshot](images/screenshot-1-1-step-11.png).
+
 ## 2. Development
 
 Now we are arrive in the fun part!
@@ -110,4 +112,89 @@ Note that the development build is not optimized.
 To create a production build, use npm run build.
 ```
 
-![Screenshot](images/screenshot-2-1-step-2.png).
+![Screenshot](images/screenshot-2-1-step-2a.png).
+
+### 2.2. Initialize Backend.
+
+Now to get backend services, we need to initialize the backend support.
+
+**STEP 1** From the root of the project, execute 
+
+```bash
+amplify init
+```
+
+It will then ask you to specify some of configuration. Choose the default values like below.
+
+![Screenshot](images/screenshot-2-2-step-11a.png).
+
+Then it will run CloudFormation 
+
+#### 2.3. Deploying Application
+
+Now we are going to deploy our simple application using Amplify.
+
+**STEP 1** Execute command below
+
+```
+amplify add hosting
+```
+
+**STEP 2** Choose "Hosting with Amplify Console".
+
+**STEP 3** Choose "Manual deployment" on the deployment type.
+
+![Screenshot](images/screenshot-2-3-step-3.png).
+
+**STEP 4** Now everytime you want to deploy, you deploy using command
+
+```bash
+amplify publish
+```
+
+It will show something like this
+
+![Screenshot](images/screenshot-2-3-step-4.png).
+
+Your can see your URL in the bottom of the output, e.g. `https://dev.d2xxxxxxxxx.amplifyapp.com`.
+
+**STEP 5** Open the URL to see the application.
+
+![Screenshot](images/screenshot-2-3-step-5.png).
+
+Now you can see the result of your application.
+
+
+#### 2.4. Adding Authentication.
+
+Now we are going to add authentication so our application can call AWS services on our behalf.
+
+**STEP 1** Execute the command below.
+
+```bash
+amplify add auth
+```
+
+**STEP 2** Choose `default configuration`. In your own application you can choose if your application want to connect using Social Provider e.g. Facebook.
+
+**STEP 3** Choose `username`. In your own application, you can also choose with email.
+
+**STEP 4** Choose `No, I am done`.
+
+**STEP 5** Execute command below to push the changes and create required AWS resources.
+
+```bash
+amplify push
+```
+
+Choose `Y` when prompted. Wait until message `✔ All resources are updated in the cloud` displayed.
+
+**STEP 6** Execute command below to publish the application.
+
+```bash
+amplify publish
+```
+
+Wait until message `✔ Deployment complete!`.
+
+
