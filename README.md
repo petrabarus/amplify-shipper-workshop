@@ -394,6 +394,99 @@ export default App;
 amplify publish
 ```
 
-#### 2.6.5. Integrating Amazon Location Service to Resolve Coordinate and Display Map.
+### 2.7 Integrate Amazon Location Service to Resolve Coordinate and Display Map.
 
-**STEP 1** Go to Amazon Location Service console.
+In this step we will integrate Amazon Location Service so we can get coordinate from the dropdown and show it to map.
+
+#### 2.7.1. Create Place Index.
+
+We first need to create Place Index so we can resolve text to coordinate.
+
+**STEP 1** Go to ![Amazon Location Service console](https://console.aws.amazon.com/location/home?region=us-east-1#/).
+
+**STEP 2** We are going to create Index servicee so we can get coordinate from location name. 
+Go to ![Amazon Location Service Place Indexes panel](https://console.aws.amazon.com/location/places/home?region=us-east-1#/).
+
+**STEP 3** Click **Create place index**.
+
+**STEP 4** Set name for the Place index, in this case we will use `MyShipperIndex`. Leave other options default.
+
+**STEP 5** Click **Create place index**.
+
+**STEP 6** Open the newly created Place Index, take note of the ARN. Something like `arn:aws:geo:us-east-1:1234567890:place-index/MyShipperIndex`.
+
+Now we have a new Place Index where we can resolve location name to coordinate.
+
+#### 2.7.2. Create Map.
+
+We first need to create Map so we can display the coordinate in map.
+
+**STEP 1** Go to ![Amazon Location Service console](https://console.aws.amazon.com/location/home?region=us-east-1#/).
+
+**STEP 2** We are going to Map service so we can show map. 
+Go to ![Amazon Location Service Map](https://console.aws.amazon.com/location/maps/home?region=us-east-1).
+
+**STEP 3** Click **Create map**.
+
+**STEP 4** Set name for the Map, in this case we will use `MyShipperMap`. Choose **Esri Street Map** for the **Map** type. Leave other options default.
+
+**STEP 5** Click **Create map**.
+
+**STEP 6** Open the newly created Map. Take note of the ARN, something like `arn:aws:geo:us-east-1:123456789:map/MyShipperMap`.
+
+Now we have a Map so we can display the coordinate in map.
+
+#### 2.7.3. Add Permission to access Place Index and Map.
+
+Since we will access the Place Index and Map in React app,
+we will need to add permission for the react app to access the resources.
+
+**STEP 1** Access ![Amazon Cognito panel](https://console.aws.amazon.com/cognito/home?region=us-east-1).
+
+**STEP 2** Go to ![Identity Pool panel](https://console.aws.amazon.com/cognito/federated/?region=us-east-1).
+You will see something like `myshipperappxxxxxxxx_identitypool_xxxxxxx__dev`. Open the identity pool.
+
+**STEP 3** Click **Edit identity pool**.
+
+**STEP 4** In section **Unauthenticated identities**, check **Enable access to unauthenticated identities**.
+
+**STEP 5** Click **Save Changes**.
+
+**STEP 6** Go to ![IAM Role panel](https://console.aws.amazon.com/iam/home?region=us-east-1#/roles).
+
+**STEP 7** Find the role for unauthenticated user, something like `amplify-myshipperapp-dev-xxxxxx-unauthRole`. Open the role.
+
+**STEP 8** In tab **Permissions**, choose **Add inline policy**. Put the JSON like below. 
+Replace the ARN in the JSON below with the ARN for Place Index and Map that you created above.
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "geo:GetMapTile",
+                "geo:GetMapSprites",
+                "geo:GetMapGlyphs",
+                "geo:GetMapStyleDescriptor",
+                "geo:SearchPlaceIndexForText"
+            ],
+            "Resource": [
+                "arn:aws:geo:us-east-1:1234567:place-index/MyShipperIndex",
+                "arn:aws:geo:us-east-1:1234567:map/MyShipperMap"
+            ]
+        }
+    ]
+}
+```
+
+**STEP 9** Click **Review Policy**.
+
+**STEP 10** Set the name, e.g. **ShipperLocationPolicy** and choose **Create policy**. 
+
+Now the React app can access Place Index and Map.
+
+#### 2.7.4. Implement Place Index and Map in the React App.
+
+
