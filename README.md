@@ -487,6 +487,245 @@ Replace the ARN in the JSON below with the ARN for Place Index and Map that you 
 
 Now the React app can access Place Index and Map.
 
-#### 2.7.4. Implement Place Index and Map in the React App.
+#### 2.7.4. Implement Place Index in the React App.
 
+**STEP 1** Install required library. In the project root, execute.
 
+```bash
+npm install aws-sdk aws-amplify
+```
+
+**STEP 2** Update the `App.tsx` with the code below.
+
+```js
+import React from 'react';
+import logo from './logo.svg';
+import './App.css';
+import Amplify, { API, Auth } from 'aws-amplify';
+import { Signer, ICredentials } from "@aws-amplify/core";
+import Location from "aws-sdk/clients/location";
+import awsconfig from './aws-exports';
+
+Amplify.configure(awsconfig);
+
+function ProvinceDropDown(props: any) {
+  const [provinces, setProvinces] = React.useState<any[]>([]);
+  React.useEffect(() => {
+    async function fetchProvinces() {
+      const items = await API.get('getprovince', '/provinces', {});
+      setProvinces(items.provinces);
+    };
+    fetchProvinces();
+  }, []);
+  
+  return (
+    <select name="provinces" id="provinces" onChange={e => props.onProvinceSelect(e)}>
+      {provinces && provinces.map((province, i) => {
+        return (
+          <option key={province.id + ' ' + province.name} value={province.name}>
+            {province.name}
+          </option>
+        );
+      })}
+    </select>
+  );
+}
+
+function App() {
+  const [credentials, setCredentials] = React.useState<ICredentials | null>(
+    null
+  );
+  const [coordinate, setCoordinate] = React.useState<Array<any>>([]);
+  
+  React.useEffect(() => {
+    const fetchCredentials = async () => {
+      setCredentials(await Auth.currentUserCredentials());
+    };
+
+    fetchCredentials();
+  }, []);
+
+  const onProvinceSelect = async (e: React.FormEvent<HTMLSelectElement>) => {
+    const location = e.currentTarget.value;
+    const client = new Location({
+      credentials,
+      region: awsconfig.aws_project_region,
+    });
+    const params = {
+      IndexName: "MyShipperIndex",
+      Text: location,
+    };
+    const response = await client.searchPlaceIndexForText(params).promise();
+    const resultLocation = response.Results[0];
+    const point = resultLocation.Place.Geometry.Point!;
+    setCoordinate([point[0], point[1]]);
+  };
+
+  return (
+    <div className="App">
+      <ProvinceDropDown onProvinceSelect={onProvinceSelect}/>
+      <div>Coordinate: <b>{coordinate[0]}, {coordinate[1]}</b></div>
+    </div>
+  );
+}
+
+export default App;
+```
+
+**STEP 3** Publish the code.
+
+```
+amplify publish
+```
+
+#### 2.7.5. Implement Map in the React App.
+
+**STEP 1** Install required library. In the project root, execute.
+
+```bash
+npm install react-dom react-map-gl@^5.2.11 mapbox-gl
+```
+
+**STEP 2** Update code `App.tsx`.
+
+```js
+import React from 'react';
+import ReactDOM from "react-dom";
+import logo from './logo.svg';
+import './App.css';
+import Amplify, { API, Auth } from 'aws-amplify';
+import { Signer, ICredentials } from "@aws-amplify/core";
+import Location from "aws-sdk/clients/location";
+import ReactMapGL, {
+  NavigationControl,
+  ViewportProps,
+} from "react-map-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
+
+import awsconfig from './aws-exports';
+
+Amplify.configure(awsconfig);
+
+const mapName = 'MyShipperMap';
+const placeIndexName = 'MyShipperIndex';
+const transformRequest = (credentials: ICredentials) => (
+  url?: string,
+  resourceType?: string
+) => {
+  // Resolve to an AWS URL
+  if (resourceType === "Style" && !url?.includes("://")) {
+    url = `https://maps.geo.${awsconfig.aws_project_region}.amazonaws.com/maps/v0/maps/${url}/style-descriptor`;
+  }
+
+  // Only sign AWS requests (with the signature as part of the query string)
+  if (url?.includes("amazonaws.com")) {
+    return {
+      url: Signer.signUrl(url, {
+        access_key: credentials.accessKeyId,
+        secret_key: credentials.secretAccessKey,
+        session_token: credentials.sessionToken,
+      }),
+    };
+  }
+
+  // Don't sign
+  return { url: url || "" };
+};
+
+function ProvinceDropDown(props: any) {
+  const [provinces, setProvinces] = React.useState<any[]>([]);
+  React.useEffect(() => {
+    async function fetchProvinces() {
+      const items = await API.get('getprovince', '/provinces', {});
+      setProvinces(items.provinces);
+    };
+    fetchProvinces();
+  }, []);
+  
+  return (
+    <select name="provinces" id="provinces" onChange={e => props.onProvinceSelect(e)}>
+      {provinces && provinces.map((province, i) => {
+        return (
+          <option key={province.id + ' ' + province.name} value={province.name}>
+            {province.name}
+          </option>
+        );
+      })}
+    </select>
+  );
+}
+
+function App() {
+  const [credentials, setCredentials] = React.useState<ICredentials | null>(
+    null
+  );
+  const [coordinate, setCoordinate] = React.useState<Array<any>>([]);
+  const [viewport, setViewport] = React.useState<Partial<ViewportProps>>({
+    longitude: 112.73368848400003,
+    latitude: -7.72010589599995,
+    zoom: 8,
+  });
+  
+  React.useEffect(() => {
+    const fetchCredentials = async () => {
+      setCredentials(await Auth.currentUserCredentials());
+    };
+
+    fetchCredentials();
+  }, []);
+
+  const onProvinceSelect = async (e: React.FormEvent<HTMLSelectElement>) => {
+    const location = e.currentTarget.value;
+    const client = new Location({
+      credentials,
+      region: awsconfig.aws_project_region,
+    });
+    const params = {
+      IndexName: placeIndexName,
+      Text: location,
+    };
+    const response = await client.searchPlaceIndexForText(params).promise();
+    const resultLocation = response.Results[0];
+    const point = resultLocation.Place.Geometry.Point!;
+    setCoordinate([point[0], point[1]]);
+    setViewport({
+      longitude: point[0],
+      latitude: point[1],
+      zoom: 8,
+    });
+  };
+
+  return (
+    <div className="App">
+      <ProvinceDropDown onProvinceSelect={onProvinceSelect}/>
+      {coordinate ? <div>Coordinate: <b>{coordinate[0]}, {coordinate[1]}</b></div> : <div>...</div>}
+      
+      {credentials ? (
+        <ReactMapGL
+          {...viewport}
+          width="100%"
+          height="100vh"
+          transformRequest={transformRequest(credentials)}
+          mapStyle={mapName}
+          onViewportChange={setViewport}
+        >
+          <div style={{ position: "absolute", left: 20, top: 20 }}>
+            {/* react-map-gl v5 doesn't support dragging the compass to change bearing */}
+            <NavigationControl showCompass={false} />
+          </div>
+        </ReactMapGL>
+      ) : (
+        <h1>Loading...</h1>
+      )}
+    </div>
+  );
+}
+
+export default App;
+```
+
+**STEP 3** Publish
+
+```bash
+amplify publish
+```
